@@ -24,13 +24,13 @@ random.seed(9001)
 from random import randint
 import statistics
 
-__author__ = "Your Name"
+__author__ = "Noura Ahmar-Erras"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["Noura Ahmar-Erras"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Noura Ahmar-Erras"
+__email__ = "n_a_e@hotmail.fr"
 __status__ = "Developpement"
 
 def isfile(path):
@@ -63,6 +63,46 @@ def get_arguments():
                         default=os.curdir + os.sep + "contigs.fasta",
                         help="Output contigs in fasta file")
     return parser.parse_args()
+
+def read_fastq(file):
+
+    """take a fastq file as argument
+    and return a sequence generator
+    """
+
+    with open(file, "r") as fasta_file:
+        for line in fasta_file:
+            yield next(fasta_file)[:-1]
+            next(fasta_file)
+            next(fasta_file)
+
+def cut_kmer(seq, k):
+
+    """take a sequence and a k-mer lenght as argument
+	and return a k-mer gennerator
+	"""
+
+    for i in range(len(seq)-k+1):
+        yield seq[i:i+k]
+
+def build_kmer_dict(file, k):
+
+    """take a fasta file and a k-mer lenght as argument
+    and return a k-mer count dictionary
+    """
+    dico_kmer = {}
+    seq = read_fastq(file)
+    kmer_liste = cut_kmer(seq,k)
+    for kmer in kmer_liste:
+        if kmer in dico_kmer:
+            dico_kmer[kmer] += 1
+        else:
+            dico_kmer[kmer] = 1
+    return dico_kmer
+        
+    
+    
+
 
 
 #==============================================================
