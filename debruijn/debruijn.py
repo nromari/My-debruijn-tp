@@ -16,13 +16,13 @@
 import argparse
 import os
 import sys
-import networkx as nx
 import matplotlib
 from operator import itemgetter
 import random
 random.seed(9001)
 from random import randint
 import statistics
+import networkx as nx
 
 __author__ = "Noura Ahmar-Erras"
 __copyright__ = "Universite Paris Diderot"
@@ -49,7 +49,7 @@ def isfile(path):
 
 def get_arguments():
     """Retrieves the arguments of the program.
-      Returns: An object that contains the arguments
+       Returns: An object that contains the arguments
     """
     # Parsing arguments
     parser = argparse.ArgumentParser(description=__doc__, usage=
@@ -115,6 +115,11 @@ def build_graph(dico_kmer):
         g.add_edge(prefix, suffix, weight=dico_kmer[kmer])
     return g
 
+    """visualisation de g :
+    	nx.draw(g, with_labels=True)
+    	plt.show()
+    """
+
 def get_starting_nodes(g):
 
     """take a de Bruijn graph as argument
@@ -143,13 +148,13 @@ def get_contigs(g, entry_nodes, exit_nodes):
     """take a de Bruijn graph, a starting nodes list and a exit nodes list
     as argument and return a tuple of contig
     """
-    
+ 
     contigs_tuple = []
     for node_start in entry_nodes:
         for node_end in exit_nodes:
             for path in nx.all_simple_paths(g, node_start, node_end):
                 contig = ""
-                for i in enumerate(path) :
+                for i in enumerate(path):
                     if not contig:
                         contig += path[i]
                     else:
@@ -166,8 +171,7 @@ def fill(text, width=80):
 
 def save_contigs(contigs_tuple, file_name):
 
-    """
-    Save contigs in a fasta format file
+    """Save contigs in a fasta format file
     """
 
     with open(file_name, "w") as filout:
@@ -175,7 +179,117 @@ def save_contigs(contigs_tuple, file_name):
             filout.write("> contig_" + str(index + 1) + " len = " + str(contig[1]) + "\n")
             filout.write(fill(contig[0]))
             filout.write("\n")
+
+def std(values):
+
+    """standard deviation
+	"""
+
+    return statistics.stdev(values)
+
+def path_average_weight(g, path):
+
+    """take a garph and a path as argument
+    return the average weight of the path
+    """
+
+    weight = 0
+    for i in range(len(path)-1):
+        weight += g.edges[path[i], path[i+1]]["weight"]    
+    av_weight = weight/(len(path)-1)
+    return av_weight
+
+def remove_paths(g, path_liste, delete_entry_node, delete_sink_node):
+
+	"""take a graphe and a pathway liste as argument
+	return a cleaned graph
+	"""
+
+	for i in range(0, len(path_liste)):
+	    if delete_entry_node == True:
+	        g.remove_node(path_liste[i][0])
+	    if delete_sink_node == True:
+	        g.remove_node(path_liste[i][-1])
+        g.remove_nodes_from(path_liste[i][1:-1])
+	return g
+
+def select_best_path(g, paths, len_paths, weight_paths,
+                     delete_entry_node=False,
+                     delete_sink_node=False):
+
+    """arguments : graph
+                   a path list
+                   a length paths list
+                   an average length list for each path
+                   the boleans deletion of entry and sink nodes
+        Return a cleaned graph.
+    """
+
+    cleaned_g = g
+
+    wm_paths = []
+    wm_weight = []
+    wm_length = []
+    lm_paths = []
+    lm_weight = []
+    lm_length = []
+    undes_paths = []
+    for i in range(0, len(paths)):
+        if weight_paths[i] == max(weight_paths):
+            wm_paths.append(paths[i])
+            wm_weight.append(weight_paths[i])
+            wm_length.append(len_paths[i])
+
+    for i in range(0, len(wm_paths)):
+        if wm_length[i] == max(wm_length):
+            lm_length.append(wm_length[i])
+            lm_paths.append(wm_paths[i])
+            lm_weight.append(wm_weight[i])
+
+    for path in paths:
+        if path not in lm_paths:
+            undes_paths.append(path)
+    cleaned_g = remove_paths(cleaned_g, undes_paths, delete_entry_node, delete_sink_node)
+
+    return cleaned_g
  
+def solve_bubble(g, ancestor, descendant):
+
+    """
+    Take an ancestor node, a descendant node an a node as argument
+    return: a bubble cleaned graph
+    """
+
+    cleaned_g = g
+
+    good_paths_list = []
+    len_paths_list = []
+    weight_paths_list = []
+
+    for path in nx.all_simple_paths(g, ancestor, descendant):
+        good_paths_list.append(path)
+        len_paths_list.append(len(path))
+        weight_paths_list.append(path_average_weight(cleaned_g, path))
+
+    bubble_cleaned_g = select_best_path(g, good_paths_list, len_paths_list, weight_paths_list,
+	                                    delete_entry_node=False, delete_sink_node=False)
+
+    return bubble_cleaned_g
+
+def simplify_bubbles():
+    """non réalisée
+    """
+    pass
+
+def solve_entry_tips():
+    """non réalisée
+    """
+    pass
+
+def solve_out_tips():
+    """non réalisée
+    """
+    pass
 #==============================================================
 # Main program
 #==============================================================
@@ -189,5 +303,13 @@ def main():
     g = build_graph(dico_kmer)
     entry_nodes = get_starting_nodes(g)
     exit_nodes = get_sink_nodes(g)
+    contigs_tuple = get_contigs(g, entry_nodes, exit_nodes)
+    save_contigs(contigs_tuple, args.output_file)
+    g = remove_paths(g, path_liste, delete_entry_node, delete_sink_node)
+    cleaned_g = select_best_path(g, paths, len_paths,weight_paths, delete_entry_node=False,
+                                 delete_sink_node=False)
+    bubble_cleaned_g = solve_bubble(g, ancestor, descendant)
+
+
 if __name__ == '__main__':
     main()
