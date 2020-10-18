@@ -72,7 +72,7 @@ def read_fastq(file):
 
     with open(file, "r") as fasta_file:
         for line in fasta_file:
-            yield next(fasta_file)[:-1]
+            yield next(fasta_file).strip()
             next(fasta_file)
             next(fasta_file)
 
@@ -144,7 +144,7 @@ def get_contigs(g, entry_nodes, exit_nodes):
     as argument and return a tuple of contig
     """
     
-    contigs = []
+    contigs_tuple = []
     for node_start in entry_nodes:
         for node_end in exit_nodes:
             for path in nx.all_simple_paths(g, node_start, node_end):
@@ -154,9 +154,28 @@ def get_contigs(g, entry_nodes, exit_nodes):
                         contig += path[i]
                     else:
                         contig += path[i][-1]
-                contigs.append( (contig, len(contig)) )
-    return contigs
+                contigs_tuple.append((contig, len(contig)))
+    return contigs_tuple
 
+def fill(text, width=80):
+
+    """Split text with a line return to respect fasta format
+    """
+
+    return os.linesep.join(text[i:i+width] for i in range(0, len(text), width))
+
+def save_contigs(contigs_tuple, file_name):
+
+    """
+    Save contigs in a fasta format file
+    """
+
+    with open(file_name, "w") as filout:
+        for index, contig in enumerate(contigs_tuple):
+            filout.write("> contig_" + str(index + 1) + " len = " + str(contig[1]) + "\n")
+            filout.write(fill(contig[0]))
+            filout.write("\n")
+ 
 #==============================================================
 # Main program
 #==============================================================
@@ -166,6 +185,9 @@ def main():
     """
     # Get arguments
     args = get_arguments()
-
+    dico_kmer = build_kmer_dict(args.fastq_file, args.kmer_size)
+    g = build_graph(dico_kmer)
+    entry_nodes = get_starting_nodes(g)
+    exit_nodes = get_sink_nodes(g)
 if __name__ == '__main__':
     main()
