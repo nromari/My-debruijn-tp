@@ -100,20 +100,62 @@ def build_kmer_dict(file, k):
             dico_kmer[kmer] = 1
     return dico_kmer
 
-def build_graph(dico):
+def build_graph(dico_kmer):
 
     """take a K-mer dictionary as argument
     and retrun a digraph
-    """   
-    
-    G = nx.DiGraph()
-    G.add_nodes_from(dico.keys())
-    for i in range(len(list(dico.keys()))-1):
-        G.add_edge(list(dico.keys())[i],list(dico.keys())[i+1])
-        G.edges[list(dico.keys())[i],list(dico.keys())[i+1]]['weight'] = list(dico.values())[i]
-    nx.draw(G, with_labels = 1)
-    plt.show()
+    """
 
+    g = nx.DiGraph()
+    for kmer in dico_kmer:
+        suffix = kmer[1:]
+        g.add_node(suffix)
+        prefix = kmer[:-1]
+        g.add_node(prefix)
+        g.add_edge(prefix, suffix, weight=dico_kmer[kmer])
+    return g
+
+def get_starting_nodes(g):
+
+    """take a de Bruijn graph as argument
+    and return starting nodes
+    """
+
+    entry_nodes = []
+    for node in g.nodes():
+        if len(list(g.predecessors(node))) == 0:
+            entry_nodes.append(node)
+    return entry_nodes
+
+def get_sink_nodes(g):
+
+    """take a de Bruijn graph as argument
+    and return exit nodes
+    """
+    exit_nodes = []
+    for node in g.nodes():
+        if len(list(g.successors(node))) == 0:
+            exit_nodes.append(node)
+    return exit_nodes
+
+def get_contigs(g, entry_nodes, exit_nodes):
+
+    """take a de Bruijn graph, a starting nodes list and a exit nodes list
+    as argument and return a tuple of contig
+    """
+    
+    contigs = []
+    for node_start in entry_nodes:
+        for node_end in exit_nodes:
+            for path in nx.all_simple_paths(g, node_start, node_end):
+                contig = ""
+                for i in enumerate(path) :
+                    if not contig:
+                        contig += path[i]
+                    else:
+                        contig += path[i][-1]
+                contigs.append( (contig, len(contig)) )
+    return contigs
 
 #==============================================================
 # Main program
