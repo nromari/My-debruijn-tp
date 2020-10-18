@@ -92,17 +92,27 @@ def build_kmer_dict(file, k):
     """
     dico_kmer = {}
     seq = read_fastq(file)
-    kmer_liste = cut_kmer(seq,k)
+    kmer_liste = cut_kmer(seq, k)
     for kmer in kmer_liste:
         if kmer in dico_kmer:
             dico_kmer[kmer] += 1
         else:
             dico_kmer[kmer] = 1
     return dico_kmer
-        
-    
-    
 
+def build_graph(dico):
+
+    """take a K-mer dictionary as argument
+    and retrun a digraph
+    """   
+    
+    G = nx.DiGraph()
+    G.add_nodes_from(dico.keys())
+    for i in range(len(list(dico.keys()))-1):
+        G.add_edge(list(dico.keys())[i],list(dico.keys())[i+1])
+        G.edges[list(dico.keys())[i],list(dico.keys())[i+1]]['weight'] = list(dico.values())[i]
+    nx.draw(G, with_labels = 1)
+    plt.show()
 
 
 #==============================================================
